@@ -4,7 +4,7 @@ Really helpful website:
     http://multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
 
 """
-
+# Hello
 import numpy as np
 
 class Chip8:
@@ -77,7 +77,7 @@ class Chip8:
         self.pc = NNN
 
     # 3XNN - Skips the next instruction if VX equals NN
-    def REC(self):
+    def REQC(self):
         X = (self.opcode & 0x0F00) >> 8
         NN = (self.opcode & 0x00FF)
 
@@ -86,42 +86,78 @@ class Chip8:
             # Skip next instruction
             self.pc += 4
         else:
+            # Continue normally
             self.pc += 2
 
     # 4XNN - Skips the next instruction if VX doesn't equal NN
-    def (self):
+    def RNEQC(self):
+        X = (self.opcode & 0x0F00) >> 8
+        NN = (self.opcode & 0x00FF)
 
+        if self.V[X] != NN:
+            self.pc += 4
+        else:
+            self.pc += 2
 
     # 5XY0 - Skips the next instruction if VX equals VY
-    def (self):
+    def REQR(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
+        if self.V[X] == self.V[Y]:
+            self.pc += 4
+        else:
+            self.pc += 2
 
     # 6XNN - Sets VX to NN
-    def (self):
+    def SETRC(self):
+        X = (self.opcode & 0x0F00) >> 8
+        NN = (self.opcode & 0x00FF)
 
+        self.V[X] = NN
 
     # 7XNN - Adds NN to VX
-    def (self):
+    def ADDRC(self):
+        X = (self.opcode & 0x0F00) >> 8
+        NN = (self.opcode & 0x00FF)
 
+        self.V[X] += NN
 
     # 8XY0 - Sets VX to the value of VY
-    def (self):
+    def SETRR(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
+        self.V[X] = self.V[Y]
 
     # 8XY1 - Sets VX to VX or VY. (Bitwise OR operation)
-    def (self):
+    def OR(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
+        # Bitwise OR
+        self.V[X] = self.V[X] | self.V[Y]
 
     # 8XY2 - Sets VX to VX and VY. (Bitwise AND operation)
-    def (self):
+    def AND(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
+        # Bitwise AND
+        self.V[X] = self.V[X] & self.V[Y]
 
     # 8XY3 - Sets VX to VX xor VY
-    def (self):
+    def XOR(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
+        # Bitwise XOR
+        self.V[X] = self.V[X] ^ self.V[Y]
 
     # 8XY4 - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't
-    def (self):
+    def ADDRR(self):
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
 
 
     # 8XY5 - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't
