@@ -1,4 +1,5 @@
-import pygame
+from config import *
+import pygame, sys
 
 def drawGraphics(screen, gfx):
     # Create a new pygame surface that has the same dimensions as the gfx array
@@ -13,8 +14,8 @@ def drawGraphics(screen, gfx):
         else:
             color = (0,0,0)
 
-        pixel_x = pixel_location // 32
-        pixel_y = pixel_location % 32
+        pixel_x = pixel_location % 64
+        pixel_y = pixel_location // 64
 
         gfx_surface.set_at((pixel_x, pixel_y), color)
 
@@ -24,3 +25,19 @@ def drawGraphics(screen, gfx):
     # Draw gfx_surface to the screen
     screen.blit(gfx_surface, (0,0))
     pygame.display.flip()
+
+
+def waitForKeypress():
+    print("Awaiting Keypress")
+
+    while True:
+        keyboard = pygame.key.get_pressed()
+
+        for KEY in KEY_BINDINGS:
+          if keyboard[KEY]:
+            return KEY
+
+        for event in pygame.event.get():
+          if event.type == pygame.QUIT:
+              pygame.quit()
+              sys.exit()

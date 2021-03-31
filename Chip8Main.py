@@ -1,4 +1,5 @@
-from Chip8Graphics import *
+from Chip8Simulator import *
+from Chip8Helper import *
 from config import *
 import pygame, random
 import numpy as np
@@ -6,14 +7,18 @@ import numpy as np
 pygame.init()
 
 testScreen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-testGfx = np.array([random.randint(0,1) for i in range(64*32)])
+testChip = Chip8()
+
+testChip.loadFontset()
+testChip.loadProgram()
 
 running = True
 while running:
 
+    testChip.emulateCycle()
+    drawGraphics(testScreen, testGfx)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            pygame.quit()
             running = False
-
-    if cpu.draw_flag:
-        drawGraphics(testScreen, testGfx)
