@@ -10,9 +10,9 @@ def drawGraphics(screen, gfx):
     # gfx_surface to white or black
     for pixel_location, pixel in enumerate(gfx):
         if pixel == 1:
-            color = (255,255,255)
+            color = BACKGROUND_COLOR
         else:
-            color = (0,0,0)
+            color = FOREGROUND_COLOR
 
         pixel_x = pixel_location % 64
         pixel_y = pixel_location // 64
@@ -27,17 +27,29 @@ def drawGraphics(screen, gfx):
     pygame.display.flip()
 
 
+def getKeyState():
+    keyboard = pygame.key.get_pressed()
+
+    key_state = [0] * 16
+
+    # Set an index (0 - 15) to 1 or 0 dependeng on whether the corresponding key is pressed
+    for KEY_INDEX, KEY in enumerate(KEY_BINDINGS):
+        key_state[KEY_INDEX] = keyboard[KEY]
+
+    return key_state
+
+
 def waitForKeypress():
     print("Awaiting Keypress")
 
     while True:
         keyboard = pygame.key.get_pressed()
 
-        for KEY in KEY_BINDINGS:
-          if keyboard[KEY]:
-            return KEY
+        for KEY_INDEX, KEY in enumerate(KEY_BINDINGS):
+            if keyboard[KEY]:
+                return KEY_INDEX
 
         for event in pygame.event.get():
-          if event.type == pygame.QUIT:
-              pygame.quit()
-              sys.exit()
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()

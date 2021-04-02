@@ -3,10 +3,20 @@ Config file for Chip 8 emulator
 """
 import pygame, struct
 
-PROGRAM_FILE = open("test_opcode.ch8", "rb")
+# Roms: https://johnearnest.github.io/chip8Archive/
+with open("Chip8/ROMS/octojam1title.ch8", "rb") as bin_file:
+    program_file = bin_file.read()
+
+# Unpack the binary as "B", or unsigned chars
+PROGRAM_BIN = struct.unpack("B" * len(program_file), program_file)
 
 SCREEN_WIDTH  = 900
 SCREEN_HEIGHT = 600
+
+BACKGROUND_COLOR = (245, 110, 0)
+FOREGROUND_COLOR = (100, 45,  0)
+
+HZ = 60
 
 KEY_BINDINGS = [
     pygame.K_1,

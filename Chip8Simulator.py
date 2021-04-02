@@ -3,17 +3,18 @@ Really helpful website:
     http://multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
 """
 from config import *
+from Chip8Helper import *
 import numpy as np
-
+import random
 
 class Chip8:
     def __init__(self):
         # Unsigned short
-        self.opcode = np.uint16
+        self.opcode = np.uint16(0)
         # Registers
-        self.V = np.array([0] * 16, dtype=np.uint16)
+        self.V = np.array([0] * 16, dtype=np.uint8)
         # Index register
-        self.I = np.uint16
+        self.I = np.uint16(0)
         # Program counter to keep track of the current instruction in memory
         self.pc = np.uint16(0x200)
 
@@ -27,17 +28,20 @@ class Chip8:
         self.gfx = np.array([1] * (64 * 32))
 
         # Timers that count down at 60hz
-        self.delay_timer = np.uint8
-        self.sound_timer = np.uint8
+        self.delay_timer = np.uint8(0)
+        self.sound_timer = np.uint8(0)
 
         # Original Chip8 stack size was 16,
         # but we increased it for funsies
         self.stack = np.array([0] * 256, dtype=np.uint16)
         # Stack pointer to keep track of the level of the stack
-        self.sp = np.uint16
+        self.sp = np.uint16(0)
 
         # key array used to keep track of the current state of the keyboard
         self.key = np.array([0] * 16, dtype=np.uint8)
+
+        # Used to determine whether to draw to the screen or not
+        self.draw_screen = False
 
     """
     Full list of opcodes and their functionalities found here:
@@ -50,13 +54,15 @@ class Chip8:
 
     def loadProgram(self):
         # Read the bytes from PROGRAM_FILE and write them to the memory array
-        for byte_index, byte in enumerate(PROGRAM_FILE):
-            self.memory[0x200 + byte_index] = byte
+        self.memory[0x200 : (0x200 + len(PROGRAM_BIN))] = PROGRAM_BIN
 
     # 00E0 - Clear screen
     def CLS(self):
         # Fill array with 0s
         self.gfx.fill(0)
+
+        # Indicate that the screen should be drawn
+        self.draw_screen = True
 
         # Increment program counter
         self.pc += 2
@@ -66,8 +72,6 @@ class Chip8:
         # Set the pc to the location on the top of the stack and decrement the sp
         self.pc = self.stack[self.sp]
         self.sp -= 1
-
-        self.pc += 2
 
     # 1NNN - Jumps to address NNN
     def JUMP(self):
@@ -131,6 +135,8 @@ class Chip8:
         X = (self.opcode & 0x0F00) >> 8
         NN = (self.opcode & 0x00FF)
 
+        old_vx = self.V[X]
+
         self.V[X] += NN
 
         self.pc += 2
@@ -179,11 +185,10 @@ class Chip8:
         X = (self.opcode & 0x0F00) >> 8
         Y = (self.opcode & 0x00F0) >> 4
 
-        # Set V[F] to the 17th bit (carry bit)
-        self.V[0xF] = (self.V[X] + self.V[Y]) >> 16
+        # Set V[F] to the 9th bit (carry bit)
+        self.V[0xF] = (self.V[X] + self.V[Y]) >> 8
 
-        # Keep only the first 16 bits for V[X]
-        self.V[X] = (self.V[X] + self.V[Y]) & 0xFFFF
+        self.V[X] += self.V[Y]
 
         self.pc += 2
 
@@ -198,7 +203,7 @@ class Chip8:
         else:
             self.V[0xF] = 1
 
-        self.V[X] = (self.V[X] - self.V[Y]) & 0xFFFF
+        self.V[X] -= self.V[Y]
 
         self.pc += 2
 
@@ -207,7 +212,7 @@ class Chip8:
         X = (self.opcode & 0x0F00) >> 8
         #Y = (self.opcode & 0x00F0) >> 4
 
-        self.V[F] = (V[X] & 0x0001)
+        self.V[0xF] = (self.V[X] & 0x0001)
         self.V[X] >>= 1
 
         self.pc += 2
@@ -273,43 +278,51 @@ class Chip8:
 
     # DXYN - Draw (see link for more)
     def DRAW(self):
-        X = (opcode & 0x0F00) >> 8
-        Y = (opcode & 0x00F0) >> 4
-        N = (opcode & 0x000F)
+        X = (self.opcode & 0x0F00) >> 8
+        Y = (self.opcode & 0x00F0) >> 4
+        N = (self.opcode & 0x000F)
 
         flipped = 0
 
-        # Height of N+1 pixels
-        for y in range(N + 1):
+        # Height of N pixels
+        for y in range(N):
             # Staring at mem location I, go through the pixels row by row
             pixel_row = self.memory[self.I + y]
+
             # Width of 8
             for x in range(8):
                 # Get the location of the pixel in gfx array
                 pixel_location = (self.V[Y] + y) * 64 + (self.V[X] + x)
 
-                # Place a mask over the pixel row to show only 1 pixel at a time
-                # Iter 0 mask: 1000 0000
-                # Iter 1 mask: 0100 0000
-                # Iter 2 mask: 0010 0000 etc.
-                current_pixel = pixel_row & (0x80 >> x)
+                # Make sure the location is within the bounds of the array
+                if (pixel_location > 0 and pixel_location < 2048):
+                    # Place a mask over the pixel row to show only 1 pixel at a time
+                    # Iter 0 mask: 1000 0000
+                    # Iter 1 mask: 0100 0000
+                    # Iter 2 mask: 0010 0000 etc.
+                    current_pixel = pixel_row & (0x80 >> x)
 
-                if (current_pixel != 0):
-                    # If the pixel was already on
-                    if (self.gfx[pixel_location] == 1):
-                        flipped = 1
+                    if (current_pixel != 0):
+                        # If the pixel was already on
+                        if (self.gfx[pixel_location] == 1):
+                            flipped = 1
 
-                    # XOR to get the new pixel on/off value
-                    self.gfx[pixel_location] ^= 1
+                        # XOR to get the new pixel on/off value
+                        self.gfx[pixel_location] ^= 1
 
         # Set V[F] to 1 if a pixel was turned from on to off, 0 if that didn't happen
         self.V[0xF] = flipped
+
+        self.draw_screen = True
 
         self.pc += 2
 
     # EX9E - Skips the next instruction if the key stored in VX is pressed
     def KEYPRESSED(self):
         X = (self.opcode & 0x0F00) >> 8
+
+        # Update keyboard state
+        self.key = getKeyState()
 
         if (self.key[self.V[X]] == 1):
             self.pc += 4
@@ -320,6 +333,8 @@ class Chip8:
     # EXA1 - Skips the next instruction if the key stored in VX isn't pressed
     def KEYNOTPRESSED(self):
         X = (self.opcode & 0x0F00) >> 8
+
+        self.key = getKeyState()
 
         if (self.key[self.V[X]] != 1):
             self.pc += 4
@@ -384,8 +399,8 @@ class Chip8:
 
         # Go through digit by digit of V[X], and store each digit in a subsequent memory location
         # For example: 255 -> 0010 0101 0101 -> memory[I], memory[I+1], memory[I+2]
-        self.memory[self.I] = self.V[X] / 100
-        self.memory[self.I + 1] = (self.V[X] % 100) / 10
+        self.memory[self.I] = self.V[X] // 100
+        self.memory[self.I + 1] = (self.V[X] % 100) // 10
         self.memory[self.I + 2] = (self.V[X] % 100) % 10
 
         self.pc += 2
@@ -393,9 +408,11 @@ class Chip8:
     # FX55 - Stores V0 to VX (including VX) in memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified
     def WRITE(self):
         X = (self.opcode & 0x0F00) >> 8
+        # Add 1 to X for splicing to work properly
+        X += 1
 
         # Copy a section of the Register array to memory
-        self.memory[I : (I+X)] = self.V[0 : X]
+        self.memory[self.I : (self.I+X)] = self.V[0 : X]
 
         self.pc += 2
 
@@ -403,8 +420,9 @@ class Chip8:
     # FX65 - Fills V0 to VX (including VX) with values from memory starting at address I. The offset from I is increased by 1 for each value written, but I itself is left unmodified
     def READ(self):
         X = (self.opcode & 0x0F00) >> 8
+        X += 1
 
-        self.V[0 : X] = self.memory[I : (I + X)]
+        self.V[0 : X] = self.memory[self.I : (self.I + X)]
 
         self.pc += 2
 
@@ -420,7 +438,7 @@ class Chip8:
             self.RETURN()
 
         else:
-            print(f"Unknown Opcode: {self.opcode}")
+            print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWith8(self):
@@ -454,7 +472,7 @@ class Chip8:
             self.SHFL()
 
         else:
-            print(f"Unknown Opcode: {self.opcode}")
+            print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithE(self):
@@ -467,7 +485,7 @@ class Chip8:
             self.KEYNOTPRESSED()
 
         else:
-            print(f"Unknown Opcode: {self.opcode}")
+            print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithF(self):
@@ -501,13 +519,15 @@ class Chip8:
             self.READ()
 
         else:
-            print(f"Unknown Opcode: {self.opcode}")
+            print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     """ Emulate Cycle Function """
     def emulateCycle(self):
         # Grab the 16 bit opcode from memory in 2 8 bit sections
         self.opcode = (self.memory[self.pc] << 8) | self.memory[self.pc + 1]
+
+        #print(hex(self.opcode))
 
         search_for = (self.opcode & 0xF000)
         # Execute the corresponding opcode function
@@ -560,13 +580,13 @@ class Chip8:
             self.startsWithF()
 
         else:
-          print(f"Unknown Opcode: {self.opcode}")
+          print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
-        if (delay_timer > 0):
-            delay_timer -= 1
+        if (self.delay_timer > 0):
+            self.delay_timer -= 1
 
-        if (sound_timer > 0):
-            if (sound_timer == 1):
+        if (self.sound_timer > 0):
+            if (self.sound_timer == 1):
                 print("BEEP!")
-                sound_timer -= 1
+                self.sound_timer -= 1
