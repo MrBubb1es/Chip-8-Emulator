@@ -4,7 +4,7 @@ Config file for Chip 8 emulator
 import pygame, struct
 
 # Roms: https://johnearnest.github.io/chip8Archive/
-with open("Chip8/ROMS/octojam1title.ch8", "rb") as bin_file:
+with open("ROMS/snake.ch8", "rb") as bin_file:
     program_file = bin_file.read()
 
 # Unpack the binary as "B", or unsigned chars
@@ -18,25 +18,29 @@ FOREGROUND_COLOR = (100, 45,  0)
 
 HZ = 60
 
+# Standard Chip-8 Keypad:
+#
+# 1 2 3 C   ->   1 2 3 4
+# 4 5 6 D   ->   q w e r
+# 7 8 9 E   ->   a s d f
+# A 0 B F   ->   z x c v
+#
 KEY_BINDINGS = [
+    pygame.K_x,
     pygame.K_1,
     pygame.K_2,
     pygame.K_3,
-    pygame.K_4,
-
     pygame.K_q,
     pygame.K_w,
     pygame.K_e,
-    pygame.K_r,
-
     pygame.K_a,
     pygame.K_s,
     pygame.K_d,
-    pygame.K_f,
-
     pygame.K_z,
-    pygame.K_x,
     pygame.K_c,
+    pygame.K_4,
+    pygame.K_r,
+    pygame.K_f,
     pygame.K_v
 ]
 

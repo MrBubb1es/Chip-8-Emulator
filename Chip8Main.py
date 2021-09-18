@@ -3,31 +3,39 @@ from Chip8Helper import *
 from config import *
 import pygame, random, time
 import numpy as np
+
 # Set up pygame
 pygame.init()
-
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-Chip = Chip8()
+clock = pygame.time.Clock()
 
-Chip.loadFontset()
-Chip.loadProgram()
+def main():
+    Chip = Chip8()
+    Chip.loadFontset()
+    Chip.loadProgram()
 
-running = True
-while running:
-    start_time = time.time()
+    Chip.populateZeros()
+    Chip.populateEights()
+    Chip.populateEs()
+    Chip.populateFs()
+    Chip.populateOpcodeDict()
 
-    Chip.emulateCycle()
+    running = True
+    while running:
+        start_time = time.time()
 
-    if Chip.draw_screen:
-        drawGraphics(screen, Chip.gfx)
+        Chip.emulateCycle()
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            running = False
+        if Chip.draw_screen:
+            drawGraphics(screen, Chip.gfx)
+            Chip.draw_screen = False
+            # Sleep if needed to maintain stable Hz
+            clock.tick(HZ)
 
-    if pygame.key.get_pressed()[pygame.K_SPACE]:
-        time.sleep(3)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                running = False
 
-    # Sleep if needed to maintain stable Hz
-    time.sleep(1.0 / (HZ - (time.time() - start_time)))
+
+main()

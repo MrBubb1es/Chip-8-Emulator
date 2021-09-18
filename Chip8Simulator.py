@@ -43,6 +43,13 @@ class Chip8:
         # Used to determine whether to draw to the screen or not
         self.draw_screen = False
 
+        # Opcode jump tables
+        self.opcode_dict = {}
+        self.opcode_zeros = {}
+        self.opcode_eights = {}
+        self.opcode_Es = {}
+        self.opcode_Fs = {}
+
     """
     Full list of opcodes and their functionalities found here:
     https://en.wikipedia.org/wiki/CHIP-8
@@ -427,98 +434,100 @@ class Chip8:
         self.pc += 2
 
 
+    def populateZeros(self):
+        self.opcode_zeros = {
+            0x0000 : self.CLS,
+            0x000E : self.RETURN
+        }
+
+    def populateEights(self):
+        self.opcode_eights = {
+            0x0000 : self.SETRR,
+            0x0001 : self.OR,
+            0x0002 : self.AND,
+            0x0003 : self.XOR,
+            0x0004 : self.ADDREG,
+            0x0005 : self.SUBREG,
+            0x0006 : self.SHFR,
+            0x0007 : self.SUBYX,
+            0x000E : self.SHFL
+        }
+
+    def populateEs(self):
+        self.opcode_Es = {
+            0x000E : self.KEYPRESSED,
+            0x0001 : self.KEYNOTPRESSED
+        }
+
+    def populateFs(self):
+        self.opcode_Fs = {
+            0x0007 : self.GETTIMER,
+            0x000A : self.WAITFORKEY,
+            0x0015 : self.SETDELAY,
+            0x0018 : self.SETSOUND,
+            0x001E : self.ADDRI,
+            0x0029 : self.GETFONT,
+            0x0033 : self.BCD,
+            0x0055 : self.WRITE,
+            0x0065 : self.READ
+        }
+
+    def populateOpcodeDict(self):
+        self.opcode_dict = {
+            0x0000 : self.startsWith0,
+            0x1000 : self.JUMP,
+            0x2000 : self.CALL,
+            0x3000 : self.REQC,
+            0x4000 : self.RNEQC,
+            0x5000 : self.REQR,
+            0x6000 : self.SETRC,
+            0x7000 : self.ADDRC,
+            0x8000 : self.startsWith8,
+            0x9000 : self.RNEQR,
+            0xA000 : self.SETI,
+            0xB000 : self.JUMPOFFSET,
+            0xC000 : self.RAND,
+            0xD000 : self.DRAW,
+            0xE000 : self.startsWithE,
+            0xF000 : self.startsWithF
+        }
+
+
     """ Functions to decode and run opcode """
     def startsWith0(self):
         search_for = (self.opcode & 0x000F)
 
-        if (search_for == 0x0000):
-            self.CLS()
-
-        elif (search_for == 0x000E):
-            self.RETURN()
-
-        else:
+        # Attempt to run the opcode function
+        try:
+            self.opcode_zeros[search_for]()
+        except:
             print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWith8(self):
         search_for = (self.opcode & 0x000F)
 
-        if (search_for == 0x0000):
-            self.SETRR()
-
-        elif (search_for == 0x0001):
-            self.OR()
-
-        elif (search_for == 0x0002):
-            self.AND()
-
-        elif (search_for == 0x0003):
-            self.XOR()
-
-        elif (search_for == 0x0004):
-            self.ADDREG()
-
-        elif (search_for == 0x0005):
-            self.SUBREG()
-
-        elif (search_for == 0x0006):
-            self.SHFR()
-
-        elif (search_for == 0x0007):
-            self.SUBYX()
-
-        elif (search_for == 0x000E):
-            self.SHFL()
-
-        else:
+        try:
+            self.opcode_eights[search_for]()
+        except:
             print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithE(self):
         search_for = (self.opcode & 0x000F)
 
-        if (search_for == 0x000E):
-            self.KEYPRESSED()
-
-        elif (search_for == 0x0001):
-            self.KEYNOTPRESSED()
-
-        else:
+        try:
+            self.opcode_Es[search_for]()
+        except:
             print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithF(self):
         search_for = (self.opcode & 0x00FF)
 
-        if (search_for == 0x0007):
-            self.GETTIMER()
-
-        elif (search_for == 0x000A):
-            self.WAITFORKEY()
-
-        elif (search_for == 0x0015):
-            self.SETDELAY()
-
-        elif (search_for == 0x0018):
-            self.SETSOUND()
-
-        elif (search_for == 0x001E):
-            self.ADDRI()
-
-        elif (search_for == 0x0029):
-            self.GETFONT()
-
-        elif (search_for == 0x0033):
-            self.BCD()
-
-        elif (search_for == 0x0055):
-            self.WRITE()
-
-        elif (search_for == 0x0065):
-            self.READ()
-
-        else:
+        try:
+            self.opcode_Fs[search_for]()
+        except:
             print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
@@ -530,57 +539,11 @@ class Chip8:
         #print(hex(self.opcode))
 
         search_for = (self.opcode & 0xF000)
-        # Execute the corresponding opcode function
-        if (search_for == 0x0000):
-            self.startsWith0()
 
-        elif (search_for == 0x1000):
-            self.JUMP()
-
-        elif (search_for == 0x2000):
-            self.CALL()
-
-        elif (search_for == 0x3000):
-            self.REQC()
-
-        elif (search_for == 0x4000):
-            self.RNEQC()
-
-        elif (search_for == 0x5000):
-            self.REQR()
-
-        elif (search_for == 0x6000):
-            self.SETRC()
-
-        elif (search_for == 0x7000):
-            self.ADDRC()
-
-        elif (search_for == 0x8000):
-            self.startsWith8()
-
-        elif (search_for == 0x9000):
-            self.RNEQR()
-
-        elif (search_for == 0xA000):
-            self.SETI()
-
-        elif (search_for == 0xB000):
-            self.JUMPOFFSET()
-
-        elif (search_for == 0xC000):
-            self.RAND()
-
-        elif (search_for == 0xD000):
-            self.DRAW()
-
-        elif (search_for == 0xE000):
-            self.startsWithE()
-
-        elif (search_for == 0xF000):
-            self.startsWithF()
-
-        else:
-          print(f"Unknown Opcode: {hex(self.opcode)}")
+        try:
+            self.opcode_dict[search_for]()
+        except:
+            print(f"Unknown Opcode: {hex(self.opcode)}")
 
 
         if (self.delay_timer > 0):
