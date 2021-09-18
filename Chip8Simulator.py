@@ -501,7 +501,7 @@ class Chip8:
         try:
             self.opcode_zeros[search_for]()
         except:
-            print(f"Unknown Opcode: {hex(self.opcode)}")
+            raise ValueError(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWith8(self):
@@ -510,7 +510,7 @@ class Chip8:
         try:
             self.opcode_eights[search_for]()
         except:
-            print(f"Unknown Opcode: {hex(self.opcode)}")
+            raise ValueError(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithE(self):
@@ -519,7 +519,7 @@ class Chip8:
         try:
             self.opcode_Es[search_for]()
         except:
-            print(f"Unknown Opcode: {hex(self.opcode)}")
+            raise ValueError(f"Unknown Opcode: {hex(self.opcode)}")
 
 
     def startsWithF(self):
@@ -528,7 +528,8 @@ class Chip8:
         try:
             self.opcode_Fs[search_for]()
         except:
-            print(f"Unknown Opcode: {hex(self.opcode)}")
+            raise ValueError(f"Unknown Opcode: {hex(self.opcode)}")
+
 
 
     """ Emulate Cycle Function """
@@ -543,7 +544,7 @@ class Chip8:
         try:
             self.opcode_dict[search_for]()
         except:
-            print(f"Unknown Opcode: {hex(self.opcode)}")
+            raise ValueError(f"Unknown Opcode: {hex(self.opcode)}")
 
 
         if (self.delay_timer > 0):

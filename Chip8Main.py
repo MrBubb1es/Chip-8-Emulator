@@ -37,5 +37,4 @@ def main():
                 pygame.quit()
                 running = False
 
-
 main()
